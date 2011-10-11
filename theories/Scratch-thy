@@ -1,0 +1,28 @@
+theory Scratch
+imports Main
+begin
+
+ML{* Term_XML.Encode.term @{term "x+y"}
+  |> YXML.string_of_body
+  |> YXML.embed_controls 
+  |> funpow 3 quote
+  |> prefix "val s="
+  |> writeln *}
+
+term "5:5:00=Groups.plus_class.plus00=fun:10='a:Groups.plus:00=fun:10='a:Groups.plus:10='a:Groups.plus:10=x10='a:Groups.plus:10=y10='a:Groups.plus"
+
+ML_command{* 
+  warning ("Bad term: " ^  Syntax.string_of_term @{context} @{term "x+y"}) *}
+
+term "A\<^isub>1 B\<^sub>m\<^isub>i\<^isub>n"
+
+term "\<union> A. " 
+
+notepad
+begin
+  fix x y z :: nat
+  assume foo: "x+y= z"
+  ML_prf{* fun bar th = th RS @{thm foo} *}
+end
+
+end

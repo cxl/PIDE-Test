@@ -1,0 +1,240 @@
+(* -*-coding: utf-8;-*- *)
+(* $Id: Auxiliaries.thy 4583 2010-01-19 10:07:42Z dw $ *)
+
+header {* Auxiliary Definitions *}
+
+theory Auxiliaries
+imports Complex_Main
+begin
+
+ML {* proofs := 1 *}
+
+subsection {* Predicate markers *}
+
+text {* With @{text "Mk1"} we do mark preconditions of functions,
+  so they don't get split up by @{text "pr_step"}. This avoids
+  repetition of derivations due to early splits.
+*}
+definition Mk1 :: "bool \<Rightarrow> bool" 
+where "Mk1 P = P"
+
+lemma Mk1I: "P \<Longrightarrow> Mk1 P" by (simp add: Mk1_def)
+lemma Mk1D: "Mk1 P \<Longrightarrow> P" by (simp add: Mk1_def)
+lemma Mk1_eq: "Mk1 P = P" by (simp add: Mk1_def)
+lemma Mk1_True: "Mk1 True = True" by (simp add: Mk1_eq)
+
+lemma Mk1_nocong: "Mk1 P = Mk1 P" by simp
+lemma Mk1_cong: "P = P' \<Longrightarrow> Mk1 P = Mk1 P'" by simp
+
+declare Mk1_nocong[cong]
+
+text {* Use @{text "simp cong: Mk1_cong"} to simplify under @{term Mk1}. *}  
+
+(* A version of exE-rule *) 
+lemma exE2: " \<forall>x. P x \<longrightarrow> Q \<Longrightarrow> (\<exists> x. P x) \<longrightarrow> Q"
+by blast
+
+text{* 
+ Definitions missing from Isabelle's library. 
+ *}
+
+subsection{* Maybe *}
+
+primrec
+  fromOption :: "'b \<Rightarrow> 'b option \<Rightarrow> 'b"
+where
+   "fromOption d None = d"
+ | "fromOption d (Some b) = d"
+
+primrec
+  option :: "'b\<Rightarrow> ('a\<Rightarrow> 'b)\<Rightarrow> 'a option \<Rightarrow> 'b"
+where
+   "option d f None = d"
+ | "option d f (Some a) = f a"
+
+lemma not_some: "~ P a \<Longrightarrow> ~ P (SOME x. ~ P x)"
+  apply (rule someI)
+  apply (assumption)
+  done
+
+lemma some_not_I: "\<lbrakk>~P x; P a \<rbrakk> \<Longrightarrow> a \<noteq> (\<some>x. \<not> P x)"
+  apply (auto intro: some_equality simp add: not_some)
+  done
+
+
+subsection {* List lemmas *}
+
+text {* 
+  Convenient lemma to be used in destructuring of lists.
+*}
+
+lemma dest_list_at_i:
+  "\<lbrakk> \<forall>xs y ys. zs = xs @ y # ys \<longrightarrow> P xs y ys; i < length zs\<rbrakk> \<Longrightarrow> P (take i zs) (zs!i) (drop (Suc i) zs)"
+  apply (drule_tac x="take i zs" in spec)
+  apply (drule_tac x="zs!i" in spec)
+  apply (drule_tac x="drop (Suc i) zs" in spec)
+  apply (drule mp, simp add: id_take_nth_drop)
+  apply simp
+done
+
+lemma size_tuple_list_aux[rule_format]: 
+"\<forall>x. x : set xs \<longrightarrow> prod_size (list_size char_size) size x < list_size (prod_size (list_size char_size) size) xs"
+  apply simp
+  apply (induct_tac xs)
+  apply simp
+  apply force
+  done
+
+lemma take_split_list[rule_format]:
+" \<forall>k ys. take k xs = ys \<longrightarrow> (\<exists>zs. xs = ys @ zs)"
+  apply (induct xs, simp)
+  apply clarify
+  apply (case_tac k, simp_all)
+done
+
+lemma list_drop_nth_sub:
+assumes h1: "m < length ts" and h2: "n \<le> m" and h3: "ts!n = a"
+shows "(a # drop (Suc n) ts) ! (m - n) = ts ! m"
+proof -
+  from h1 h2 have a1: "n < length ts" by simp
+  hence a2: "ts = take n ts @ ts!n # drop (Suc n) ts" by (rule id_take_nth_drop)
+  show ?thesis
+  proof (subst (2) a2) 
+    from h1 h2 h3 a1  
+    show "(a # drop (Suc n) ts) ! (m - n) = (take n ts @ ts ! n # drop (Suc n) ts) ! m"
+      by (subst nth_append, simp add: min_def)
+  qed
+qed
+
+
+lemma length_concat_replicate[simp]: "length (concat (replicate n xs)) = n * length xs"
+by(induct_tac n, simp_all)
+
+
+lemma prefix_eq_nth[rule_format]:
+  " \<forall>ys i. i < length xs \<longrightarrow> i < length ys \<longrightarrow> take (Suc i) xs = take (Suc i) ys \<longrightarrow> xs!i = ys!i"
+  apply (induct xs, simp)
+  apply clarify
+  apply (case_tac i)
+  apply simp
+  apply (subst nth_take[symmetric, where n="Suc 0"], simp)
+  apply (erule subst, simp)
+  --{* Holy mother! *}
+  apply clarify
+  apply (drule_tac x="tl ys" in spec)
+  apply (drule_tac x="nat" in spec)
+  apply simp
+  apply (drule mp, arith)
+  apply (drule mp, case_tac ys, simp+)
+  apply (case_tac ys, simp+)
+done
+
+
+
+lemma nth_split[rule_format] : 
+" \<forall>i. i < length xs \<longrightarrow> (\<exists> ys zs. length ys = i \<and> xs = ys @ (xs ! i)#zs)"
+apply(induct_tac xs, simp_all)
+apply(clarify)
+apply(case_tac i, simp_all)
+apply(drule spec, drule mp, assumption)
+apply(clarsimp)
+apply(rule_tac x="a#ys" in exI, simp)
+apply(rule_tac x=zs in exI)
+by simp
+
+lemma concat_replicate_commute: "x @ concat (replicate n x) = concat (replicate n x) @ x"
+  by (induct_tac n, simp_all)
+
+
+lemma concat_replicate_hd: 
+"0 < length x \<longrightarrow> i < n \<longrightarrow> concat (replicate n x) ! (i * length x) = hd x"
+  apply (induct_tac n, simp_all)
+  apply clarify
+  apply (case_tac "i = n")
+  apply simp
+  apply (simp add: concat_replicate_commute)
+  apply (subst nth_append)
+  apply (simp add: hd_conv_nth)
+  apply (simp add: concat_replicate_commute)
+  apply (subst nth_append)
+  apply simp
+done
+
+lemma AUX_length_drop1:
+ "\<lbrakk>k < length xs;  a < length (drop k xs) \<rbrakk> \<Longrightarrow> k + a < length xs"
+  apply (subst (asm) length_drop)
+  apply simp
+done
+
+lemma nth_in_tl_aux[rule_format]: " \<forall>i. 0 < i \<longrightarrow> i < length xs \<longrightarrow> xs!i : set (tl xs)"
+  apply (induct_tac xs)
+  apply simp
+  apply clarify
+  apply (case_tac "i = length list")
+  apply simp
+  apply (simp add: nth_Cons split: nat.split)
+  apply (drule_tac x=i in spec)
+  apply (simp add: nth_Cons split: nat.split)
+  done
+  
+
+subsection {* Arithmetic *}
+
+
+lemma natarith_aux2:
+"\<lbrakk>(a::nat) < b; b < c\<rbrakk> \<Longrightarrow> a + 1 < c"
+by arith
+
+lemma natarith_aux3: "(b::nat) \<le> a \<Longrightarrow> (a - b < c) = (a < c + b)"
+  by arith
+
+
+lemma natarith_aux5: "\<lbrakk> (d::nat) < c; a + b * c \<le> x; 0 < b  \<rbrakk> \<Longrightarrow> a + b * d < x"
+  apply (erule xt1)
+  apply simp
+done
+
+
+lemma add_mult_less_mono1[rule_format]: 
+"(b::nat) < s \<longrightarrow> 0 < m \<longrightarrow> b < a + m * s"
+  apply (induct_tac m, simp)
+  apply clarify
+  apply (case_tac "n = 0")
+  apply simp+
+done
+
+
+subsection {* Finding an index in an assoc-list *}
+
+fun
+fst_occ :: "'a \<Rightarrow> ('a \<times> 'b) list \<Rightarrow> nat"
+where
+"fst_occ x [] = 0" |
+"fst_occ x ((y,z)#xs) = (if x = y then 0 else Suc (fst_occ x xs))"
+
+lemma fst_occ_length:
+"(x \<in> fst ` set xs) = (fst_occ x xs < length xs)"
+by (induct xs, simp, force)
+
+lemma fst_occ_bound:
+"fst_occ x (ys@(x,y)#zs) \<le> length ys"
+  by (induct ys, simp, force)
+
+lemma fst_occ_eq_iff:
+"(fst_occ x (ys@(x,y)#zs) = length ys) = (x \<notin> fst ` set ys)"
+  by (induct ys, simp, force)
+
+lemma fst_occ_eq_n[rule_format]:
+" \<forall>n. fst_occ x xs = n \<longrightarrow> x \<notin> fst ` set (take n xs)"
+  by (induct xs, simp, case_tac a, simp)
+
+lemma fst_occ_nth_eq[rule_format]:
+" x \<in> fst ` set xs \<longrightarrow> fst (xs!(fst_occ x xs)) = x"
+  by (induct xs, simp, force)
+
+lemma fst_occ_less_imp_neq[rule_format]:
+" fst_occ f fs < fst_occ f' fs \<longrightarrow> f \<noteq> f'"
+  by (induct fs, simp, force)
+
+
+end
