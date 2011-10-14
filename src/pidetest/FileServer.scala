@@ -46,7 +46,9 @@ class FileActor(val s: Session, val name: Document.Node.Name, val txt: String) e
             // It turns out that e.g. the order of the cmds is irrelevant (unsurprisingly, given that they are a set).
             // This piece of code extracts the source and the markup of the affected nodes:
            for ( name<-nodes; snap= s.snapshot(name, List()); (cmd, off)<- snap.node.command_range() )
-             println("Command offset: "+ off+ ", source: "+ cmd.source+ ", markup: "+ snap.command_state(cmd).markup)
+             println("Command offset: "+ off+ ", id : "+ cmd.id+ ", source: "+ cmd.source+ ", markup: "+ snap.command_state(cmd).markup)
         }}
     }
 }
+
+

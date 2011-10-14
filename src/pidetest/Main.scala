@@ -19,6 +19,7 @@ object Main {
     val thys = for { file <- new File(args(0)).listFiles
                      name= file.getName 
                      if name.endsWith(".thy") } yield name
+    println("Starting with theories: "+ thys.mkString(", "))
     Isabelle.start("/usr/local/Isabelle_24-Sep-2011", "HOL", thys.toList)
   }
 
