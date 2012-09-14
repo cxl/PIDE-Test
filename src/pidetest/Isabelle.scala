@@ -28,7 +28,7 @@ object Isabelle
     smgr.start()
     /* Start session */
     println("Starting sesssion...")
-    s.start(Time.seconds(30), false, List(logic))
+    s.start(Time.seconds(30), List(logic))
     println("All started.")
     }
  
@@ -41,7 +41,7 @@ class SessionActor(val s: Session, val thys: List[String]) extends Actor {
         Isabelle.session = Some(s); 
         println("Isabelle is ready.")
         val rm= new RawMsgActor("Raw message")
-        s.raw_messages += rm
+        s.all_messages += rm
         // The output from s.raw_messages is voluminous, but 
         // it seems not the be the case that s.raw_output_messages
         // contains exactly Result messages from s.raw_messages, so we have
@@ -58,7 +58,7 @@ class SessionActor(val s: Session, val thys: List[String]) extends Actor {
 class RawMsgActor(val pre : String) extends Actor {
   def act () {
     loop { react {
-        case result: Isabelle_Process.Result =>
+        case result: Isabelle_Process.Message =>
           println(pre+ ": "+ result) 
         // case input: Isabelle_Process.Input =>
         //   println("Raw input: "+ input)  // These are not that interesting

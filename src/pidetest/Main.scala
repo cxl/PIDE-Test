@@ -17,10 +17,10 @@ object Main {
     if (args.length < 1) { println("No argument!"); }
     FileServer.thyDir = args(0)
     val thys = for { file <- new File(args(0)).listFiles
-                     name= file.getName 
+                     name= file.getName
                      if name.endsWith(".thy") } yield name
     println("Starting with theories: "+ thys.mkString(", "))
-    Isabelle.start("/usr/local/Isabelle_24-Sep-2011", "HOL", thys.toList)
+    Isabelle.start("""C:\Users\Martin\Desktop\Isabelle2012""", "HOL", thys.toList)
   }
 
 }
